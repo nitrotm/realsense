@@ -528,8 +528,9 @@ namespace realsense_camera
     while (enable_imu_ && ros::ok())
     {
       if (!imu_changed_) {
-        imu_cv_.wait(lock, [&]{ return imu_changed_; });
+        imu_cv_.wait(lock);
       }
+      imu_changed_ = false;
 
       // if (start_stop_srv_called_ == true)
       // {
@@ -623,6 +624,8 @@ namespace realsense_camera
           << "\tx: " << std::setprecision(5) <<  entry.axes[0]
           << "\ty: " << entry.axes[1]
           << "\tz: " << entry.axes[2]);
+
+      imu_changed_ = true;
 
       lock.unlock();
       imu_cv_.notify_all();
@@ -877,6 +880,7 @@ namespace realsense_camera
     rs_disable_motion_tracking(rs_device_, &rs_error_);
     checkError();
     enable_imu_ = false;
+    imu_changed_ = true;
 
     lock.unlock();
     imu_cv_.notify_all();
