@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """
 @file check_camera_transforms_publish_tf.py
 """

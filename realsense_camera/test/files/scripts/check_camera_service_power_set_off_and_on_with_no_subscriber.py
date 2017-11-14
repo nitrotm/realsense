@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """
 @file check_camera_service_power_set_off_and_on_with_no_subscriber.py
 """

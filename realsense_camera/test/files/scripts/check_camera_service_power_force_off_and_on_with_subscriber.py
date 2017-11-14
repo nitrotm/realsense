@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """
 @file check_camera_service_power_force_off_and_on_with_subscriber.py
 """
