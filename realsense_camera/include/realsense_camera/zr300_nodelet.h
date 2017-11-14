@@ -34,6 +34,7 @@
 
 #include <string>
 #include <vector>
+#include <condition_variable>
 
 #include <dynamic_reconfigure/server.h>
 #include <sensor_msgs/Imu.h>
@@ -67,30 +68,32 @@ protected:
   std::function<void(rs::motion_data)> motion_handler_;
   std::function<void(rs::timestamp_data)> timestamp_handler_;
   std::mutex imu_mutex_;
+  std::condition_variable imu_cv_;
+  bool imu_changed_;
 
   rs_extrinsics color2ir2_extrinsic_;      // color frame is base frame
   rs_extrinsics color2fisheye_extrinsic_;  // color frame is base frame
   rs_extrinsics color2imu_extrinsic_;      // color frame is base frame
 
   // Member Functions.
-  void getParameters();
-  void advertiseTopics();
-  void advertiseServices();
-  bool getIMUInfo(realsense_camera::GetIMUInfo::Request & req, realsense_camera::GetIMUInfo::Response & res);
-  std::vector<std::string> setDynamicReconfServer();
-  void startDynamicReconfCallback();
-  void setDynamicReconfigDepthControlPreset(int preset);
-  std::string setDynamicReconfigDepthControlIndividuals();
-  void configCallback(realsense_camera::zr300_paramsConfig &config, uint32_t level);
-  void getCameraExtrinsics();
-  void publishStaticTransforms();
-  void publishDynamicTransforms();
-  void publishIMU();
-  void setStreams();
-  void setIMUCallbacks();
-  void setFrameCallbacks();
+  virtual void getParameters();
+  virtual void advertiseTopics();
+  virtual void advertiseServices();
+  virtual bool getIMUInfo(realsense_camera::GetIMUInfo::Request & req, realsense_camera::GetIMUInfo::Response & res);
+  virtual std::vector<std::string> setDynamicReconfServer();
+  virtual void startDynamicReconfCallback();
+  virtual void setDynamicReconfigDepthControlPreset(int preset);
+  virtual std::string setDynamicReconfigDepthControlIndividuals();
+  virtual void configCallback(realsense_camera::zr300_paramsConfig &config, uint32_t level);
+  virtual void getCameraExtrinsics();
+  virtual void publishStaticTransforms();
+  virtual void publishDynamicTransforms();
+  virtual void publishIMU();
+  virtual void setStreams();
+  virtual void setIMUCallbacks();
+  virtual void setFrameCallbacks();
   std::function<void(rs::frame f)> fisheye_frame_handler_, ir2_frame_handler_;
-  void stopIMU();
+  virtual void stopIMU();
 };
 }  // namespace realsense_camera
 #endif  // REALSENSE_CAMERA_ZR300_NODELET_H

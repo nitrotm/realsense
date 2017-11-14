@@ -87,6 +87,7 @@ namespace realsense_camera
 
     if (enable_imu_ == true)
     {
+      imu_changed_ = false;
       imu_thread_ =
           boost::shared_ptr<boost::thread>(new boost::thread(boost::bind(&ZR300Nodelet::publishIMU, this)));
     }
@@ -521,33 +522,37 @@ namespace realsense_camera
    */
   void ZR300Nodelet::publishIMU()
   {
+    std::unique_lock<std::mutex> lock(imu_mutex_);
+
     prev_imu_ts_ = -1;
-    while (ros::ok())
+    while (enable_imu_ && ros::ok())
     {
-      if (start_stop_srv_called_ == true)
-      {
-        if (start_camera_ == true)
-        {
-          ROS_INFO_STREAM(nodelet_name_ << " - " << startCamera());
-        }
-        else
-        {
-          ROS_INFO_STREAM(nodelet_name_ << " - " << stopCamera());
-        }
-        start_stop_srv_called_ = false;
+      if (!imu_changed_) {
+        imu_cv_.wait(lock, [&]{ return imu_changed_; });
       }
 
-      if (enable_[RS_STREAM_DEPTH] != rs_is_stream_enabled(rs_device_, RS_STREAM_DEPTH, 0))
-      {
-        stopCamera();
-        setStreams();
-        startCamera();
-      }
+      // if (start_stop_srv_called_ == true)
+      // {
+      //   if (start_camera_ == true)
+      //   {
+      //     ROS_INFO_STREAM(nodelet_name_ << " - " << startCamera());
+      //   }
+      //   else
+      //   {
+      //     ROS_INFO_STREAM(nodelet_name_ << " - " << stopCamera());
+      //   }
+      //   start_stop_srv_called_ = false;
+      // }
+
+      // if (enable_[RS_STREAM_DEPTH] != rs_is_stream_enabled(rs_device_, RS_STREAM_DEPTH, 0))
+      // {
+      //   stopCamera();
+      //   setStreams();
+      //   startCamera();
+      // }
 
       if (imu_publisher_.getNumSubscribers() > 0)
       {
-        std::unique_lock<std::mutex> lock(imu_mutex_);
-
         if (prev_imu_ts_ != imu_ts_)
         {
           sensor_msgs::Imu imu_msg = sensor_msgs::Imu();
@@ -618,6 +623,9 @@ namespace realsense_camera
           << "\tx: " << std::setprecision(5) <<  entry.axes[0]
           << "\ty: " << entry.axes[1]
           << "\tz: " << entry.axes[2]);
+
+      lock.unlock();
+      imu_cv_.notify_all();
     };
 
     // Get timestamp that syncs all sensors.
@@ -862,9 +870,15 @@ namespace realsense_camera
    */
   void ZR300Nodelet::stopIMU()
   {
+    std::unique_lock<std::mutex> lock(imu_mutex_);
+
     rs_stop_source(rs_device_, (rs_source)rs::source::motion_data, &rs_error_);
     checkError();
     rs_disable_motion_tracking(rs_device_, &rs_error_);
     checkError();
+    enable_imu_ = false;
+
+    lock.unlock();
+    imu_cv_.notify_all();
   }
 }  // namespace realsense_camera
