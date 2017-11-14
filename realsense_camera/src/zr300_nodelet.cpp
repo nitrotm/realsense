@@ -552,25 +552,24 @@ namespace realsense_camera
       //   startCamera();
       // }
 
-      if (imu_publisher_.getNumSubscribers() > 0)
+      if (prev_imu_ts_ != imu_ts_ && imu_publisher_.getNumSubscribers() > 0)
       {
-        if (prev_imu_ts_ != imu_ts_)
-        {
-          sensor_msgs::Imu imu_msg = sensor_msgs::Imu();
-          imu_msg.header.stamp = ros::Time(camera_start_ts_) + ros::Duration(imu_ts_ * 0.001);
-          imu_msg.header.frame_id = imu_optical_frame_id_;
+        sensor_msgs::Imu imu_msg = sensor_msgs::Imu();
+        imu_msg.header.stamp = ros::Time(camera_start_ts_) + ros::Duration(imu_ts_ * 0.001);
+        imu_msg.header.frame_id = imu_optical_frame_id_;
 
-          // Setting just the first element to -1.0 because device does not give orientation data
-          imu_msg.orientation_covariance[0] = -1.0;
+        // Setting just the first element to -1.0 because device does not give orientation data
+        imu_msg.orientation_covariance[0] = -1.0;
 
-          imu_msg.angular_velocity = imu_angular_vel_;
-          imu_msg.linear_acceleration = imu_linear_accel_;
+        imu_msg.angular_velocity = imu_angular_vel_;
+        imu_msg.linear_acceleration = imu_linear_accel_;
 
-          imu_publisher_.publish(imu_msg);
-          prev_imu_ts_ = imu_ts_;
-        }
+        imu_publisher_.publish(imu_msg);
+        prev_imu_ts_ = imu_ts_;
       }
     }
+    lock.unlock();
+
     stopIMU();
   }
 
@@ -879,6 +878,7 @@ namespace realsense_camera
     checkError();
     rs_disable_motion_tracking(rs_device_, &rs_error_);
     checkError();
+
     enable_imu_ = false;
     imu_changed_ = true;
 
