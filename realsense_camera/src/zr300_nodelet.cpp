@@ -46,6 +46,7 @@ namespace realsense_camera
     if (enable_imu_ == true)
     {
       stopIMU();
+
       // clean up imu thread
       imu_thread_->join();
     }
@@ -134,6 +135,7 @@ namespace realsense_camera
 
     ros::NodeHandle imu_nh(nh_, IMU_NAMESPACE);
     imu_publisher_ = imu_nh.advertise<sensor_msgs::Imu>(IMU_TOPIC, 1000);
+    imu_diff_publisher_ = imu_nh.advertise<sensor_msgs::Imu>(IMU_DIFF_TOPIC, 1000);
   }
 
   /*
@@ -523,6 +525,7 @@ namespace realsense_camera
   void ZR300Nodelet::publishIMU()
   {
     std::unique_lock<std::mutex> lock(imu_mutex_);
+    bool first = true;
 
     prev_imu_ts_ = -1;
     while (enable_imu_ && ros::ok())
@@ -530,7 +533,6 @@ namespace realsense_camera
       if (!imu_changed_) {
         imu_cv_.wait(lock);
       }
-      imu_changed_ = false;
 
       // if (start_stop_srv_called_ == true)
       // {
@@ -552,21 +554,45 @@ namespace realsense_camera
       //   startCamera();
       // }
 
-      if (prev_imu_ts_ != imu_ts_ && imu_publisher_.getNumSubscribers() > 0)
+      if (imu_changed_ && prev_imu_ts_ != imu_ts_)
       {
-        sensor_msgs::Imu imu_msg = sensor_msgs::Imu();
-        imu_msg.header.stamp = ros::Time(camera_start_ts_) + ros::Duration(imu_ts_ * 0.001);
-        imu_msg.header.frame_id = imu_optical_frame_id_;
+        if (imu_publisher_.getNumSubscribers() > 0) {
+          sensor_msgs::Imu imu_msg = sensor_msgs::Imu();
+          imu_msg.header.stamp = ros::Time(camera_start_ts_) + ros::Duration(imu_ts_ * 0.001);
+          imu_msg.header.frame_id = imu_optical_frame_id_;
 
-        // Setting just the first element to -1.0 because device does not give orientation data
-        imu_msg.orientation_covariance[0] = -1.0;
+          // Setting just the first element to -1.0 because device does not give orientation data
+          imu_msg.orientation_covariance[0] = -1.0;
 
-        imu_msg.angular_velocity = imu_angular_vel_;
-        imu_msg.linear_acceleration = imu_linear_accel_;
+          imu_msg.angular_velocity = imu_angular_vel_;
+          imu_msg.linear_acceleration = imu_linear_accel_;
 
-        imu_publisher_.publish(imu_msg);
+          imu_publisher_.publish(imu_msg);
+        }
+        if (!first && imu_diff_publisher_.getNumSubscribers() > 0) {
+          sensor_msgs::Imu imu_msg = sensor_msgs::Imu();
+          imu_msg.header.stamp = ros::Time(camera_start_ts_) + ros::Duration(imu_ts_ * 0.001);
+          imu_msg.header.frame_id = imu_optical_frame_id_;
+
+          // Setting just the first element to -1.0 because device does not give orientation data
+          imu_msg.orientation_covariance[0] = -1.0;
+
+          imu_msg.angular_velocity.x = imu_angular_vel_.x - imu_last_angular_vel_.x;
+          imu_msg.angular_velocity.y = imu_angular_vel_.y - imu_last_angular_vel_.y;
+          imu_msg.angular_velocity.z = imu_angular_vel_.z - imu_last_angular_vel_.z;
+          imu_msg.linear_acceleration.x = imu_linear_accel_.x - imu_last_linear_accel_.x;
+          imu_msg.linear_acceleration.y = imu_linear_accel_.y - imu_last_linear_accel_.y;
+          imu_msg.linear_acceleration.z = imu_linear_accel_.z - imu_last_linear_accel_.z;
+
+          imu_diff_publisher_.publish(imu_msg);
+        }
+        imu_last_angular_vel_ = imu_angular_vel_;
+        imu_last_linear_accel_ = imu_linear_accel_;
         prev_imu_ts_ = imu_ts_;
       }
+
+      first = false;
+      imu_changed_ = false;
     }
     lock.unlock();
 
@@ -880,9 +906,9 @@ namespace realsense_camera
     checkError();
 
     enable_imu_ = false;
-    imu_changed_ = true;
 
     lock.unlock();
+
     imu_cv_.notify_all();
   }
 }  // namespace realsense_camera

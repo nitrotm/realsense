@@ -115,6 +115,7 @@ namespace realsense_camera
     const std::string FISHEYE_TOPIC = "image_raw";
     const std::string IMU_NAMESPACE = "imu";
     const std::string IMU_TOPIC = "data_raw";
+    const std::string IMU_DIFF_TOPIC = "data_diff";
     const std::string IMU_INFO_SERVICE = "get_imu_info";
     const std::string DEFAULT_FISHEYE_FRAME_ID = "camera_fisheye_frame";
     const std::string DEFAULT_IMU_FRAME_ID = "camera_imu_frame";

@@ -61,9 +61,12 @@ protected:
   std::string imu_optical_frame_id_;
   geometry_msgs::Vector3 imu_angular_vel_;
   geometry_msgs::Vector3 imu_linear_accel_;
+  geometry_msgs::Vector3 imu_last_angular_vel_;
+  geometry_msgs::Vector3 imu_last_linear_accel_;
   double imu_ts_;
   double prev_imu_ts_;
   ros::Publisher imu_publisher_;
+  ros::Publisher imu_diff_publisher_;
   boost::shared_ptr<boost::thread> imu_thread_;
   std::function<void(rs::motion_data)> motion_handler_;
   std::function<void(rs::timestamp_data)> timestamp_handler_;
