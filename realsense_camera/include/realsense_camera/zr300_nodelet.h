@@ -97,6 +97,12 @@ protected:
   virtual void setFrameCallbacks();
   std::function<void(rs::frame f)> fisheye_frame_handler_, ir2_frame_handler_;
   virtual void stopIMU();
+
+  virtual void setDepthEnable(bool &enable_depth);
+  virtual bool setPowerCameraService(realsense_camera::SetPower::Request & req,
+      realsense_camera::SetPower::Response & res);
+  virtual bool forcePowerCameraService(realsense_camera::ForcePower::Request & req,
+      realsense_camera::ForcePower::Response & res);
 };
 }  // namespace realsense_camera
 #endif  // REALSENSE_CAMERA_ZR300_NODELET_H

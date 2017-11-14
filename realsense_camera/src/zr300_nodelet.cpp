@@ -534,25 +534,25 @@ namespace realsense_camera
         imu_cv_.wait(lock);
       }
 
-      // if (start_stop_srv_called_ == true)
-      // {
-      //   if (start_camera_ == true)
-      //   {
-      //     ROS_INFO_STREAM(nodelet_name_ << " - " << startCamera());
-      //   }
-      //   else
-      //   {
-      //     ROS_INFO_STREAM(nodelet_name_ << " - " << stopCamera());
-      //   }
-      //   start_stop_srv_called_ = false;
-      // }
+      if (start_stop_srv_called_ == true)
+      {
+        if (start_camera_ == true)
+        {
+          ROS_INFO_STREAM(nodelet_name_ << " - " << startCamera());
+        }
+        else
+        {
+          ROS_INFO_STREAM(nodelet_name_ << " - " << stopCamera());
+        }
+        start_stop_srv_called_ = false;
+      }
 
-      // if (enable_[RS_STREAM_DEPTH] != rs_is_stream_enabled(rs_device_, RS_STREAM_DEPTH, 0))
-      // {
-      //   stopCamera();
-      //   setStreams();
-      //   startCamera();
-      // }
+      if (enable_[RS_STREAM_DEPTH] != rs_is_stream_enabled(rs_device_, RS_STREAM_DEPTH, 0))
+      {
+        stopCamera();
+        setStreams();
+        startCamera();
+      }
 
       if (imu_changed_ && prev_imu_ts_ != imu_ts_)
       {
@@ -589,9 +589,10 @@ namespace realsense_camera
         imu_last_angular_vel_ = imu_angular_vel_;
         imu_last_linear_accel_ = imu_linear_accel_;
         prev_imu_ts_ = imu_ts_;
+
+        first = false;
       }
 
-      first = false;
       imu_changed_ = false;
     }
     lock.unlock();
@@ -911,4 +912,39 @@ namespace realsense_camera
 
     imu_cv_.notify_all();
   }
+
+
+  /*
+   * Set depth enable
+   */
+  void ZR300Nodelet::setDepthEnable(bool &enable_depth)
+  {
+    BaseNodelet::setDepthEnable(enable_depth);
+    imu_cv_.notify_all();
+  }
+
+  /*
+   * Set Power Camera service
+   */
+  bool ZR300Nodelet::setPowerCameraService(realsense_camera::SetPower::Request & req,
+      realsense_camera::SetPower::Response & res)
+  {
+    bool ret = BaseNodelet::setPowerCameraService(req, res);;
+
+    imu_cv_.notify_all();
+    return ret;
+  }
+
+  /*
+   * Force Power Camera service
+   */
+  bool ZR300Nodelet::forcePowerCameraService(realsense_camera::ForcePower::Request & req,
+      realsense_camera::ForcePower::Response & res)
+  {
+    bool ret = BaseNodelet::forcePowerCameraService(req, res);
+
+    imu_cv_.notify_all();
+    return ret;
+  }
+
 }  // namespace realsense_camera
